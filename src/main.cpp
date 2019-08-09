@@ -9,10 +9,10 @@
 #include <credentials.h>
 
 #include <BME280I2C.h>
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
-//#include <LiquidCrystal.h>
+
+#include <LiquidCrystal_PCF8574.h>
 
 #include <ArduinoJson.h>
 
@@ -84,6 +84,12 @@ String LOG_TEMP_TOPIC    = "/logger/" + device_name + "/temp_sensor";
 const size_t capacity = JSON_OBJECT_SIZE(5) + 100;
 DynamicJsonDocument JSON_ambient(capacity);
 DynamicJsonDocument JSON_temp(capacity);
+
+
+/*-----------------------------------------------------------------------------------*/
+// LCD
+
+LiquidCrystal_PCF8574 lcd(0x27); // set the LCD address to 0x27 for a 16 chars and 2 line display
 
 /*-----------------------------------------------------------------------------------*/
 // zusätzliche Variabeln
@@ -223,7 +229,37 @@ void setup() {
   // ----------------------------- Basic -----------------------------
   Serial.begin(115200);
   Serial.println();
+
+  // wait on Serial to be available on Leonardo
+  while (!Serial);
+
   Wire.begin();
+
+
+  // ------------------------------ LCD ------------------------------
+  int error;
+
+  // check if LCD is connected
+  Serial.println("Check for LCD");
+  Wire.beginTransmission(0x27);
+  error = Wire.endTransmission();
+  Serial.print("Error: ");
+  Serial.print(error);
+
+  if (error == 0) {
+    Serial.println(" LCD found.");
+    lcd.begin(20, 4); // initialize the lcd
+
+  } else {
+    Serial.println(" LCD not found.");
+  }
+
+  // start LCD
+  lcd.setBacklight(255);
+  lcd.setCursor(0, 1);
+  lcd.print("Starting");
+  lcd.setCursor(0, 2);
+  lcd.print("esp32 Data-Logger");
 
 
   // ------------------------------ BME280 ------------------------------
@@ -270,6 +306,11 @@ Serial.println("Sensor 2: " + String(sensors.getResolution(sensor2), DEC) + " bi
   MQTTClient.setServer(mqtt_server, 1883);
   MQTTClient.setCallback(callback);
   // MQTTClient is now ready for use
+
+
+  //Prepare LCD
+  lcd.clear();
+  lcd.home();
 }
 
 void loop() {
@@ -306,6 +347,17 @@ void loop() {
     Serial.println("pressure in mbar = " + String(pres/100));
     Serial.println("reduced pressure in mbar = " + String(p_r));
 
+    // Display on LCD
+    lcd.setCursor(0,1);
+    lcd.print("Temp:    " + String(temp) + "C   ");
+    lcd.setCursor(0,2);
+    lcd.print("Hum:     " + String(hum) + "%   ");
+    lcd.setCursor(0,3);
+    lcd.print("redPres: "+ String(p_r)+"mbar ");
+    lcd.setCursor(0,0);
+    lcd.print("                    ");
+    lcd.setCursor(0,0);
+
     //Concstuct JSON
 
     JSON_ambient["time"] = now();
@@ -325,7 +377,7 @@ void loop() {
     //OneWire
     sensors.requestTemperatures(); // Send the command to get temperatures
 
-    float tempSens_1, tempSens_2, tempSens_3;
+    float tempSens_1, tempSens_2;
 
     sensors.requestTemperatures();
     tempSens_1 = sensors.getTempC(sensor1);
@@ -349,5 +401,6 @@ void loop() {
   if ((millis() - lastMsgTime > 1000) || (millis()-lastMsgTime < 0)) {     // intervall 1 seconds
     lastMsgTime = millis();
     Serial.println(digitalClockDisplay(now()));
+    lcd.print(">>");
   }
 }

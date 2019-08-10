@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <time.h>
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -16,6 +15,9 @@
 
 #include <ArduinoJson.h>
 
+#include <TimeLib.h>
+#include <EasyNTPClient.h>
+#include <WiFiUdp.h>
 
 
 /*-----------------------------------------------------------------------------------*/
@@ -91,6 +93,16 @@ DynamicJsonDocument JSON_temp(capacity);
 
 LiquidCrystal_PCF8574 lcd(0x27); // set the LCD address to 0x27 for a 16 chars and 2 line display
 int degree[8] = {0x7,0x5,0x7,0x0,0x0,0x0,0x0,0x0};
+
+
+/*-----------------------------------------------------------------------------------*/
+// NTP time synconisation
+
+WiFiUDP udp;
+const int timeZone = 2*60*60;
+const char *ntpServer = "pool.ntp.org";
+EasyNTPClient ntpClient(udp, ntpServer, timeZone);
+
 
 /*-----------------------------------------------------------------------------------*/
 // zusätzliche Variabeln
@@ -210,6 +222,11 @@ void reconnect() {
 }
 
 
+// ++++++++++++++++++++++ NTP function wrapper ++++++++++++++++++++++
+time_t getNTPtime(){
+  return(ntpClient.getUnixTime());
+}
+
 // +++++++++++++++++++++++++ BME280 Read Data +++++++++++++++++++++++++
 int readBME280Data(float &pres, float &temp, float &hum) {
 
@@ -319,6 +336,21 @@ Serial.println("Sensor 2: " + String(sensors.getResolution(sensor2), DEC) + " bi
   // MQTTClient is now ready for use
 
 
+  // ------------------------- Syncronize Tine -------------------------
+  Serial.println("Syncing system time to NTP");
+  setSyncProvider(getNTPtime);
+
+  if (timeStatus() != timeSet){
+    Serial.println("Syncronisatrion FAILED!");
+    // lcd.print("FAILED");
+    while(1);
+  }
+
+  Serial.println("Syncronisatrion SUCCESSFUL!");
+  Serial.println(digitalClockDisplay(now()));
+  Serial.println();
+
+
   //Prepare LCD
   lcd.clear();
   lcd.home();
@@ -408,11 +440,11 @@ void loop() {
       lcd.write(uint8_t(0));
       lcd.print("C   ");
       lcd.setCursor(0,2);
-      lcd.print("Sensor 2: " + String(tempSens_1));
+      lcd.print("Sensor 1: " + String(tempSens_1));
       lcd.write(uint8_t(0));
       lcd.print("C   ");
       lcd.setCursor(0,1);
-      lcd.print(digitalClockDisplay(now()) + "    ");
+      lcd.print(digitalClockDisplay(now()) + "  ");
       lcd.setCursor(0,0);
       lcd.print("                    ");
       lcd.setCursor(0,0);

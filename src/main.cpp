@@ -90,6 +90,7 @@ DynamicJsonDocument JSON_temp(capacity);
 // LCD
 
 LiquidCrystal_PCF8574 lcd(0x27); // set the LCD address to 0x27 for a 16 chars and 2 line display
+int degree[8] = {0x7,0x5,0x7,0x0,0x0,0x0,0x0,0x0};
 
 /*-----------------------------------------------------------------------------------*/
 // zusätzliche Variabeln
@@ -268,6 +269,9 @@ void setup() {
   lcd.setCursor(0, 2);
   lcd.print("esp32 Data-Logger");
 
+  // add custom character
+  lcd.createChar(0, degree);
+
 
   // ------------------------------ BME280 ------------------------------
   while(!bme.begin())
@@ -362,7 +366,9 @@ void loop() {
       lcd.setCursor(0,2);
       lcd.print("Hum:     " + String(hum) + "%   ");
       lcd.setCursor(0,1);
-      lcd.print("Temp:    " + String(temp) + "C   ");
+      lcd.print("Temp:    " + String(temp));
+      lcd.write(uint8_t(0));
+      lcd.print("C   ");
       lcd.setCursor(0,0);
       lcd.print("                    ");
       lcd.setCursor(0,0);
@@ -398,9 +404,13 @@ void loop() {
 
     if (digitalRead(selectPin)){
       lcd.setCursor(0,3);
-      lcd.print("Sensor 2: " + String(tempSens_2) + "C    ");
+      lcd.print("Sensor 2: " + String(tempSens_2));
+      lcd.write(uint8_t(0));
+      lcd.print("C   ");
       lcd.setCursor(0,2);
-      lcd.print("Sensor 1: " + String(tempSens_1) + "C    ");
+      lcd.print("Sensor 2: " + String(tempSens_1));
+      lcd.write(uint8_t(0));
+      lcd.print("C   ");
       lcd.setCursor(0,1);
       lcd.print(digitalClockDisplay(now()) + "    ");
       lcd.setCursor(0,0);

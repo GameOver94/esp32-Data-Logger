@@ -99,7 +99,7 @@ const float g = 9.80665;
 const float R = 287.05;
 const float alpha = 0.0065;
 const float C_h = 0.12;
-const float h = 465;           //Change to your height above seelevel
+const float h = 465;           // Change to your height above seelevel
 
 /* Antonie Parameter */
 const float A = 5.20389;
@@ -109,6 +109,9 @@ const float C = 39.485;
 
 long lastMsgSense = 0;
 long lastMsgTime = 0;
+
+/* Pin Definitions */
+const int selectPin = 25;     // this pin is for selecting the data dispalyed by the LCD
 
 
 // +++++++++++++++++++++++++ Time Conversion Functions +++++++++++++++++++++++++
@@ -236,6 +239,10 @@ void setup() {
   Wire.begin();
 
 
+  // --------------------------- Pin Setup ---------------------------
+  pinMode(selectPin, INPUT_PULLDOWN);
+
+
   // ------------------------------ LCD ------------------------------
   int error;
 
@@ -347,19 +354,22 @@ void loop() {
     Serial.println("pressure in mbar = " + String(pres/100));
     Serial.println("reduced pressure in mbar = " + String(p_r));
 
+
     // Display on LCD
-    lcd.setCursor(0,1);
-    lcd.print("Temp:    " + String(temp) + "C   ");
-    lcd.setCursor(0,2);
-    lcd.print("Hum:     " + String(hum) + "%   ");
-    lcd.setCursor(0,3);
-    lcd.print("redPres: "+ String(p_r)+"mbar ");
-    lcd.setCursor(0,0);
-    lcd.print("                    ");
-    lcd.setCursor(0,0);
+    if (digitalRead(!selectPin)){
+      lcd.setCursor(0,3);
+      lcd.print("redPres: "+ String(p_r)+"mbar   ");
+      lcd.setCursor(0,2);
+      lcd.print("Hum:     " + String(hum) + "%   ");
+      lcd.setCursor(0,1);
+      lcd.print("Temp:    " + String(temp) + "C   ");
+      lcd.setCursor(0,0);
+      lcd.print("                    ");
+      lcd.setCursor(0,0);
+    }
+
 
     //Concstuct JSON
-
     JSON_ambient["time"] = now();
     JSON_ambient["temperature"] = temp;
     JSON_ambient["humidity"] = hum;
@@ -385,6 +395,18 @@ void loop() {
 
     Serial.println("Sensor 1 in °C: " + String(tempSens_1));
     Serial.println("Sensor 2 in °C: " + String(tempSens_2));
+
+    if (digitalRead(selectPin)){
+      lcd.setCursor(0,3);
+      lcd.print("Sensor 2: " + String(tempSens_2) + "C    ");
+      lcd.setCursor(0,2);
+      lcd.print("Sensor 1: " + String(tempSens_1) + "C    ");
+      lcd.setCursor(0,1);
+      lcd.print(digitalClockDisplay(now()) + "    ");
+      lcd.setCursor(0,0);
+      lcd.print("                    ");
+      lcd.setCursor(0,0);
+    }
 
     JSON_temp["time"] = now();
     JSON_temp["sensor 1"] = tempSens_1;
